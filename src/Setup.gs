@@ -40,7 +40,7 @@ function setup() {
 const INITIAL_APPS = [
   {
     id: 'zaiko-kanri', name: '在庫管理', description: '在庫の確認・入出庫の管理',
-    category: '在庫・購買', url: 'https://zaiko-kanri.pages.dev/', icon: '📦', sortOrder: 10
+    category: '在庫・購買', url: 'https://script.google.com/macros/s/AKfycbwOO2q0T9VxaO22_4bdiso9iSPLCUzaaNQdk98cqUaAylVJSMkbCZU-gi5Em0SUHW2uhA/exec', icon: '📦', sortOrder: 10
   },
   {
     id: 'cad-guide', name: 'CADデータ取得・SP登録アシスタント', description: 'CAD取得の使い方と依頼の案内',
