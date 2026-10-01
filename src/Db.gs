@@ -7,7 +7,8 @@ const Db = {
   },
 
   sheet(name) {
-    const sh = this.ss().getSheetByName(name);
+    let sh = this.ss().getSheetByName(name);
+    if (!sh && SCHEMA[name]) sh = this.ss().insertSheet(name); // スキーマに追加したシートは自動作成
     if (!sh) throw new Error('シートが見つかりません: ' + name);
     this._ensureHeader(sh, name);
     return sh;
@@ -83,7 +84,7 @@ const Db = {
     const o = {};
     header.forEach((h, i) => {
       const v = row[i];
-      o[h] = v instanceof Date ? v.toISOString() : v;
+      o[h] = v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss") : v;
     });
     return o;
   }

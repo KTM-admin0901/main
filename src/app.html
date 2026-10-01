@@ -20,8 +20,9 @@ async function init() {
 
 function showTab(t) {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  $('#home').hidden = t !== 'home'; $('#admin').hidden = t !== 'admin';
+  $('#home').hidden = t !== 'home'; $('#docs').hidden = t !== 'docs'; $('#admin').hidden = t !== 'admin';
   if (t === 'admin') loadAdmin();
+  if (t === 'docs') renderDocs();
 }
 
 function renderAnnouncements() {
@@ -54,6 +55,82 @@ function renderApps() {
     S.favorites = on ? [...S.favorites, id] : S.favorites.filter(x => x !== id);
     renderApps();
   });
+}
+
+// ---- 資料・展望 ----
+const PHASES = ['構想', '設計', '開発', '稼働'];
+const KINDS = ['設計書', '要件定義', 'ロードマップ', '構成図', '議事録', 'マニュアル', 'その他'];
+let dFilter = { system: '', kind: '', q: '' };
+const sysName = id => (S.systems.find(s => String(s.id) === String(id)) || {}).name || '(未分類)';
+const opts = (arr, sel) => arr.map(v => `<option ${v === sel ? 'selected' : ''}>${esc(v)}</option>`).join('');
+
+function renderDocs() {
+  const roadmap = PHASES.map(p => `<div class="col"><h2>${p}</h2>` +
+    (S.systems.filter(s => s.phase === p).map(s => `
+      <div class="sys ${dFilter.system === String(s.id) ? 'on' : ''}" data-sys="${esc(s.id)}">
+        <b>${esc(s.name)}</b><br><small>${esc(String(s.targetDate || '').slice(0, 10))} ${esc(s.owner)}</small>
+        <p>${esc(s.summary)}</p><small>資料 ${S.documents.filter(d => String(d.systemId) === String(s.id)).length}件</small>
+        ${S.canEdit ? ` <a href="#" data-editsys="${esc(s.id)}">編集</a>` : ''}
+        ${S.isAdmin ? ` <a href="#" data-delsys="${esc(s.id)}">削除</a>` : ''}</div>`).join('') || '<small>なし</small>') + '</div>').join('');
+
+  const q = dFilter.q.toLowerCase();
+  const docs = S.documents.filter(d =>
+    (!dFilter.system || String(d.systemId) === dFilter.system) && (!dFilter.kind || d.kind === dFilter.kind) &&
+    (!q || (d.title + d.summary + d.tags).toLowerCase().includes(q)));
+
+  $('#docs').innerHTML = `
+    <h2>展望(構築予定システム)</h2><div class="road">${roadmap}</div>
+    ${S.canEdit ? `
+    <details><summary>システムを登録</summary>
+    <form class="row" id="fSys"><input type="hidden" name="id">
+      <input name="name" placeholder="システム名" required>
+      <select name="phase">${opts(PHASES)}</select>
+      <input name="targetDate" placeholder="予定時期 例 2026-12 / 2026年Q4" size="22">
+      <input name="owner" placeholder="担当"><input name="summary" placeholder="概要・狙い" size="40">
+      <select name="minRole"><option>member</option><option>manager</option><option>admin</option></select>
+      <input name="sortOrder" type="number" placeholder="順" style="width:70px"><button class="btn">保存</button></form></details>
+    <details><summary>資料を登録</summary>
+    <form class="row" id="fDoc"><input type="hidden" name="id">
+      <input name="title" placeholder="タイトル" required>
+      <select name="kind">${opts(KINDS)}</select>
+      <select name="systemId"><option value="">(関連システムなし)</option>${S.systems.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select>
+      <input name="url" placeholder="https://… (Googleドキュメント/Drive等の共有リンク)" size="40" required>
+      <input name="version" placeholder="版" size="6"><input name="tags" placeholder="タグ(カンマ区切り)">
+      <input name="summary" placeholder="要約" size="40">
+      <select name="minRole"><option>member</option><option>manager</option><option>admin</option></select>
+      <select name="status"><option value="active">公開</option><option value="hidden">非公開</option></select>
+      <button class="btn">保存</button></form></details>` : ''}
+    <h2>資料一覧${dFilter.system ? '(' + esc(sysName(dFilter.system)) + ')' : ''}</h2>
+    <form class="row" onsubmit="return false"><input id="dq" placeholder="検索" value="${esc(dFilter.q)}">
+      <select id="dk"><option value="">全種別</option>${opts(KINDS, dFilter.kind)}</select>
+      <button type="button" class="btn sub" id="dclr">絞り込み解除</button></form>
+    <table><tr><th>タイトル</th><th>種別</th><th>システム</th><th>版</th><th>更新</th><th>要約</th><th></th></tr>
+    ${docs.map(d => `<tr><td><a href="${esc(d.url)}" rel="noopener">${esc(d.title)}</a>${d.status === 'hidden' ? ' 🔒' : ''}</td>
+      <td>${esc(d.kind)}</td><td>${esc(sysName(d.systemId))}</td><td>${esc(d.version)}</td>
+      <td>${esc(String(d.updatedAt).slice(0, 10))}</td><td>${esc(d.summary)}</td>
+      <td>${S.canEdit ? `<a href="#" data-editdoc="${esc(d.id)}">編集</a>` : ''} ${S.isAdmin ? `<a href="#" data-deldoc="${esc(d.id)}">削除</a>` : ''}</td></tr>`).join('') || '<tr><td colspan="7">資料がありません</td></tr>'}</table>`;
+
+  const el = $('#docs');
+  el.querySelectorAll('[data-sys]').forEach(b => b.onclick = e => {
+    if (e.target.tagName === 'A') return;
+    dFilter.system = dFilter.system === b.dataset.sys ? '' : b.dataset.sys; renderDocs();
+  });
+  $('#dq').oninput = e => { dFilter.q = e.target.value; const pos = e.target.selectionStart; renderDocs(); const n = $('#dq'); n.focus(); n.setSelectionRange(pos, pos); };
+  $('#dk').onchange = e => { dFilter.kind = e.target.value; renderDocs(); };
+  $('#dclr').onclick = () => { dFilter = { system: '', kind: '', q: '' }; renderDocs(); };
+
+  const fill = (formId, obj) => { const f = $(formId); f.closest('details').open = true;
+    [...f.elements].forEach(x => { if (x.name && obj[x.name] !== undefined) x.value = obj[x.name]; }); f.scrollIntoView(); };
+  const save = (formId, fn) => { const f = $(formId); if (!f) return; f.onsubmit = async e => {
+    e.preventDefault(); await run(fn, Object.fromEntries(new FormData(f))); toast('保存しました');
+    S = await run('api_bootstrap'); renderDocs(); }; };
+  save('#fSys', 'api_saveSystem'); save('#fDoc', 'api_saveDocument');
+  el.querySelectorAll('[data-editsys]').forEach(a => a.onclick = e => { e.preventDefault(); fill('#fSys', S.systems.find(s => String(s.id) === a.dataset.editsys)); });
+  el.querySelectorAll('[data-editdoc]').forEach(a => a.onclick = e => { e.preventDefault(); fill('#fDoc', S.documents.find(d => String(d.id) === a.dataset.editdoc)); });
+  const del = (sel, attr, fn, msg) => el.querySelectorAll(sel).forEach(a => a.onclick = async e => {
+    e.preventDefault(); if (!confirm(msg)) return; await run(fn, a.dataset[attr]); S = await run('api_bootstrap'); renderDocs(); });
+  del('[data-delsys]', 'delsys', 'api_deleteSystem', 'このシステムを削除しますか?(資料は残ります)');
+  del('[data-deldoc]', 'deldoc', 'api_deleteDocument', 'この資料を削除しますか?');
 }
 
 // ---- 管理画面 ----

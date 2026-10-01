@@ -15,7 +15,13 @@ function api_bootstrap() {
     isAdmin: Auth.can(user, 'admin'),
     apps: listApps_(user, false).map(withLaunchUrl_),
     favorites: favs,
-    announcements: announcements
+    announcements: announcements,
+    canEdit: Auth.can(user, 'manager'),
+    systems: Db.all(SHEETS.SYSTEMS).filter(s => Auth.can(user, s.minRole))
+      .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0)),
+    documents: Db.all(SHEETS.DOCUMENTS)
+      .filter(d => Auth.can(user, d.minRole) && (d.status !== 'hidden' || Auth.can(user, 'manager')))
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
   };
 }
 
@@ -103,4 +109,46 @@ function api_admin_syncApps() {
   Auth.requireRole('admin');
   registerApps();
   audit_('sync_apps', '');
+}
+
+// ---- 設計書・資料 / 構築予定システム(展望) ----
+const DOC_PHASES = ['構想', '設計', '開発', '稼働'];
+
+function api_saveSystem(s) {
+  const user = Auth.requireRole('manager');
+  if (!s || !s.name) throw new Error('システム名は必須です');
+  s.id = s.id || Utilities.getUuid();
+  s.phase = DOC_PHASES.indexOf(s.phase) >= 0 ? s.phase : '構想';
+  s.minRole = CONFIG.ROLES.indexOf(s.minRole) >= 0 ? s.minRole : 'member';
+  s.owner = s.owner || user.name;
+  s.updatedAt = new Date();
+  Db.upsert(SHEETS.SYSTEMS, 'id', s);
+  audit_('save_system', s.id);
+  return s.id;
+}
+
+function api_deleteSystem(id) {
+  Auth.requireRole('admin');
+  Db.remove(SHEETS.SYSTEMS, s => String(s.id) === String(id));
+  audit_('delete_system', id);
+}
+
+function api_saveDocument(d) {
+  const user = Auth.requireRole('manager');
+  if (!d || !d.title) throw new Error('タイトルは必須です');
+  if (!/^https:\/\//.test(d.url || '')) throw new Error('資料のURLは https:// で始めてください(Googleドキュメント/Driveの共有リンク等)');
+  d.id = d.id || Utilities.getUuid();
+  d.minRole = CONFIG.ROLES.indexOf(d.minRole) >= 0 ? d.minRole : 'member';
+  d.status = d.status === 'hidden' ? 'hidden' : 'active';
+  d.owner = d.owner || user.name;
+  d.updatedAt = new Date();
+  Db.upsert(SHEETS.DOCUMENTS, 'id', d);
+  audit_('save_document', d.id);
+  return d.id;
+}
+
+function api_deleteDocument(id) {
+  Auth.requireRole('admin');
+  Db.remove(SHEETS.DOCUMENTS, d => String(d.id) === String(id));
+  audit_('delete_document', id);
 }
