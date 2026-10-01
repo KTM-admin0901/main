@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_blank">
+  <meta charset="utf-8">
+  <?!= include('style') ?>
+</head>
+<body>
+  <header>
+    <h1 id="title"></h1>
+    <input id="q" type="search" placeholder="アプリを検索…">
+    <span id="me"></span>
+  </header>
+  <nav id="tabs">
+    <button data-tab="home" class="on">ホーム</button>
+    <button data-tab="admin" id="adminTab" hidden>管理</button>
+  </nav>
+  <main>
+    <section id="home">
+      <div id="announce"></div>
+      <div id="cats"></div>
+      <div id="grid"></div>
+    </section>
+    <section id="admin" hidden></section>
+  </main>
+  <div id="toast"></div>
+  <?!= include('app') ?>
+</body>
+</html>

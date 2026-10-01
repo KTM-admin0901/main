@@ -1,0 +1,107 @@
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const run = (fn, ...args) => new Promise((ok, ng) =>
+  google.script.run.withSuccessHandler(ok).withFailureHandler(e => { toast(e.message || e); ng(e); })[fn](...args));
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+let S = null, cat = '全て';
+
+async function init() {
+  S = await run('api_bootstrap');
+  document.title = S.title;
+  $('#title').textContent = S.title;
+  $('#me').textContent = S.user.name + '(' + S.user.role + ')';
+  $('#adminTab').hidden = !S.isAdmin;
+  $('#q').oninput = renderApps;
+  document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  renderAnnouncements(); renderApps();
+}
+
+function showTab(t) {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('#home').hidden = t !== 'home'; $('#admin').hidden = t !== 'admin';
+  if (t === 'admin') loadAdmin();
+}
+
+function renderAnnouncements() {
+  $('#announce').innerHTML = S.announcements.map(a =>
+    `<div class="note ${esc(a.level)}"><b>${esc(a.title)}</b>${esc(a.body)}<br><small>${esc(String(a.publishedAt).slice(0,10))}</small></div>`).join('');
+}
+
+function renderApps() {
+  const q = $('#q').value.trim().toLowerCase();
+  const cats = ['全て', '★お気に入り', ...new Set(S.apps.map(a => a.category).filter(Boolean))];
+  $('#cats').innerHTML = cats.map(c => `<button class="chip ${c === cat ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+  $('#cats').querySelectorAll('.chip').forEach(b => b.onclick = () => { cat = b.dataset.c; renderApps(); });
+  const list = S.apps.filter(a =>
+    (cat === '全て' || (cat === '★お気に入り' ? S.favorites.includes(String(a.id)) : a.category === cat)) &&
+    (!q || (a.name + a.description + a.category).toLowerCase().includes(q)));
+  $('#grid').innerHTML = list.map(a => {
+    const fav = S.favorites.includes(String(a.id));
+    return `<a class="card" href="${esc(a.url)}" data-id="${esc(a.id)}" rel="noopener">
+      <button class="star ${fav ? 'on' : ''}" data-id="${esc(a.id)}" title="お気に入り">${fav ? '★' : '☆'}</button>
+      <div class="ic">${esc(a.icon || '📦')}</div><h3>${esc(a.name)}</h3><p>${esc(a.description)}</p></a>`;
+  }).join('') || '<p>該当するアプリがありません</p>';
+  $('#grid').querySelectorAll('.card').forEach(c => c.addEventListener('click', e => {
+    if (e.target.classList.contains('star')) return;
+    run('api_logLaunch', c.dataset.id).catch(() => {});
+  }));
+  $('#grid').querySelectorAll('.star').forEach(b => b.onclick = async e => {
+    e.preventDefault(); e.stopPropagation();
+    const on = await run('api_toggleFavorite', b.dataset.id);
+    const id = b.dataset.id;
+    S.favorites = on ? [...S.favorites, id] : S.favorites.filter(x => x !== id);
+    renderApps();
+  });
+}
+
+// ---- 管理画面 ----
+async function loadAdmin() {
+  const d = await run('api_admin_load');
+  $('#admin').innerHTML = `
+    <h2>アプリ登録</h2>
+    <form class="row" id="fApp">
+      <input name="name" placeholder="名称" required><input name="url" placeholder="https://…" size="36" required>
+      <input name="category" placeholder="カテゴリ"><input name="icon" placeholder="絵文字" size="4">
+      <input name="description" placeholder="説明" size="28">
+      <select name="minRole"><option>member</option><option>manager</option><option>admin</option></select>
+      <input name="sortOrder" type="number" placeholder="順" style="width:70px">
+      <button class="btn">保存</button></form>
+    <table><tr><th>名称</th><th>URL</th><th>カテゴリ</th><th>権限</th><th>状態</th><th></th></tr>
+    ${d.apps.map(a => `<tr><td>${esc(a.icon)} ${esc(a.name)}</td><td>${esc(a.url)}</td><td>${esc(a.category)}</td><td>${esc(a.minRole)}</td><td>${esc(a.status)}</td>
+      <td><button class="btn sub" data-toggle="${esc(a.id)}">${a.status === 'active' ? '非表示' : '表示'}</button>
+      <button class="btn sub" data-del="${esc(a.id)}">削除</button></td></tr>`).join('')}</table>
+    <h2>ユーザー登録</h2>
+    <form class="row" id="fUser"><input name="email" type="email" placeholder="メール" required><input name="name" placeholder="氏名">
+      <input name="department" placeholder="部署"><select name="role"><option>member</option><option>manager</option><option>admin</option></select>
+      <label><input type="checkbox" name="active" checked> 有効</label><button class="btn">保存</button></form>
+    <table><tr><th>メール</th><th>氏名</th><th>部署</th><th>権限</th><th>有効</th></tr>
+    ${d.users.map(u => `<tr><td>${esc(u.email)}</td><td>${esc(u.name)}</td><td>${esc(u.department)}</td><td>${esc(u.role)}</td><td>${esc(u.active)}</td></tr>`).join('')}</table>
+    <h2>お知らせ投稿</h2>
+    <form class="row" id="fAnn"><input name="title" placeholder="タイトル" required><input name="body" placeholder="本文" size="40">
+      <select name="level"><option value="info">info</option><option value="warn">warn</option><option value="alert">alert</option></select>
+      <input name="expiresAt" type="date"><button class="btn">投稿</button></form>`;
+
+  const form = (id, fn, after) => $(id).onsubmit = async e => {
+    e.preventDefault();
+    const o = Object.fromEntries(new FormData(e.target));
+    if (e.target.active !== undefined) o.active = e.target.active.checked;
+    await run(fn, o); toast('保存しました'); await after();
+  };
+  const refresh = async () => { S = await run('api_bootstrap'); renderApps(); renderAnnouncements(); loadAdmin(); };
+  form('#fApp', 'api_admin_saveApp', refresh);
+  form('#fUser', 'api_admin_saveUser', loadAdmin);
+  form('#fAnn', 'api_admin_saveAnnouncement', refresh);
+  $('#admin').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    if (confirm('削除しますか?')) { await run('api_admin_deleteApp', b.dataset.del); refresh(); }
+  });
+  $('#admin').querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => {
+    const a = d.apps.find(x => String(x.id) === b.dataset.toggle);
+    a.status = a.status === 'active' ? 'hidden' : 'active';
+    await run('api_admin_saveApp', a); refresh();
+  });
+}
+
+init();
+</script>
