@@ -31,3 +31,28 @@ function setup() {
   }
   console.log('DB: ' + ss.getUrl());
 }
+
+/**
+ * 業務アプリをポータルに登録する(何度実行しても重複しない。idが同じなら上書き)。
+ * アプリを追加・URL変更するときは INITIAL_APPS を編集し、GASエディタで実行する。
+ * ※管理画面から登録する場合は、この関数を使わなくてもよい。
+ */
+const INITIAL_APPS = [
+  {
+    id: 'zaiko-kanri', name: '在庫管理', description: '在庫の確認・入出庫の管理',
+    category: '在庫・購買', url: 'https://zaiko-kanri.pages.dev/', icon: '📦', sortOrder: 10
+  },
+  {
+    id: 'cad-guide', name: 'CADデータ取得・SP登録アシスタント', description: 'CAD取得の使い方と依頼の案内',
+    category: '設計', url: ScriptApp.getService().getUrl() + '?page=cad-guide', icon: '📐', sortOrder: 20
+  }
+];
+
+function registerApps() {
+  const me = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
+  INITIAL_APPS.forEach(a => Db.upsert(SHEETS.APPS, 'id', Object.assign(
+    { minRole: 'member', status: 'active', owner: me, updatedAt: new Date() }, a)));
+  // setup() が作ったサンプル行を削除
+  Db.remove(SHEETS.APPS, a => a.name === 'サンプルアプリ');
+  console.log('登録: ' + INITIAL_APPS.map(a => a.name).join(', '));
+}
