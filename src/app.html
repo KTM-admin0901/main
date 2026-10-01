@@ -60,6 +60,7 @@ function renderApps() {
 async function loadAdmin() {
   const d = await run('api_admin_load');
   $('#admin').innerHTML = `
+    <p><button class="btn sub" id="bSync">標準アプリ(在庫管理・CAD案内)を登録/更新</button></p>
     <h2>アプリ登録</h2>
     <form class="row" id="fApp">
       <input name="name" placeholder="名称" required><input name="url" placeholder="https://…" size="36" required>
@@ -90,6 +91,7 @@ async function loadAdmin() {
     await run(fn, o); toast('保存しました'); await after();
   };
   const refresh = async () => { S = await run('api_bootstrap'); renderApps(); renderAnnouncements(); loadAdmin(); };
+  $('#bSync').onclick = async () => { await run('api_admin_syncApps'); toast('登録しました'); refresh(); };
   form('#fApp', 'api_admin_saveApp', refresh);
   form('#fUser', 'api_admin_saveUser', loadAdmin);
   form('#fAnn', 'api_admin_saveAnnouncement', refresh);

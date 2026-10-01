@@ -86,3 +86,10 @@ function api_admin_saveAnnouncement(a) {
   audit_('save_announcement', a.id);
   return a.id;
 }
+
+/** 管理画面のボタンから INITIAL_APPS(Setup.gs)を Apps シートに同期する */
+function api_admin_syncApps() {
+  Auth.requireRole('admin');
+  registerApps();
+  audit_('sync_apps', '');
+}
