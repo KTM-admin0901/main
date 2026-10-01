@@ -11,6 +11,15 @@ function doGet(e) {
     ).setTitle(CONFIG.PORTAL_TITLE);
   }
 
+  // ?page=cad-guide のように、ポータル内の案内ページを開ける(許可リスト方式)
+  const page = e && e.parameter && e.parameter.page;
+  if (page && PAGES[page]) {
+    audit_('open_page', page);
+    return HtmlService.createTemplateFromFile(PAGES[page]).evaluate()
+      .setTitle(CONFIG.PORTAL_TITLE)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+
   audit_('open_portal', '');
   return HtmlService.createTemplateFromFile('index').evaluate()
     .setTitle(CONFIG.PORTAL_TITLE)

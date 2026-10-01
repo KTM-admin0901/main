@@ -24,3 +24,14 @@ const SCHEMA = {
   Favorites: ['email', 'appId'],
   AuditLog: ['timestamp', 'email', 'action', 'target']
 };
+
+// ポータル内の案内ページ。?page=<キー> で開く。値は src/ 内のHTMLファイル名(拡張子なし)
+const PAGES = {
+  'cad-guide': 'guide_cad'
+};
+
+// 案内ページに表示するリンク(未設定なら非表示)
+const LINKS = {
+  CAD_SHEET_URL: 'https://docs.google.com/spreadsheets/d/1tbEUa74kKhomKjNXqnRrEilyV2FN5-lF66V9XBsRyIs/edit',
+  CAD_REQUEST_APP_URL: '' // 依頼画面(GASウェブアプリ)を公開したらURLを入れる
+};
