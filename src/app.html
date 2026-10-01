@@ -41,7 +41,7 @@ function renderApps() {
     const fav = S.favorites.includes(String(a.id));
     return `<a class="card" href="${esc(a.url)}" data-id="${esc(a.id)}" rel="noopener">
       <button class="star ${fav ? 'on' : ''}" data-id="${esc(a.id)}" title="お気に入り">${fav ? '★' : '☆'}</button>
-      <div class="ic">${esc(a.icon || '📦')}</div><h3>${esc(a.name)}</h3><p>${esc(a.description)}</p></a>`;
+      <div class="ic">${esc(a.icon || '📦')}</div><h3>${esc(a.name)}</h3><p>${esc(a.description)}</p>${a.type === 'package' ? '<p><span class="chip">PCインストール型</span></p>' : ''}</a>`;
   }).join('') || '<p>該当するアプリがありません</p>';
   $('#grid').querySelectorAll('.card').forEach(c => c.addEventListener('click', e => {
     if (e.target.classList.contains('star')) return;
@@ -63,14 +63,18 @@ async function loadAdmin() {
     <p><button class="btn sub" id="bSync">標準アプリ(在庫管理・CAD案内)を登録/更新</button></p>
     <h2>アプリ登録</h2>
     <form class="row" id="fApp">
-      <input name="name" placeholder="名称" required><input name="url" placeholder="https://…" size="36" required>
+      <select name="type"><option value="web">Webアプリ</option><option value="package">パッケージ型(PCインストール)</option></select>
+      <input name="name" placeholder="名称" required><input name="url" placeholder="URL(Webは必須/パッケージは任意の案内ページ)" size="36">
       <input name="category" placeholder="カテゴリ"><input name="icon" placeholder="絵文字" size="4">
       <input name="description" placeholder="説明" size="28">
       <select name="minRole"><option>member</option><option>manager</option><option>admin</option></select>
       <input name="sortOrder" type="number" placeholder="順" style="width:70px">
+      <input name="version" placeholder="バージョン(パッケージ)" size="14"><input name="downloadUrl" placeholder="配布先URL https://…" size="30">
+      <input name="requirements" placeholder="動作要件" size="30"><input name="command" placeholder="起動コマンド" size="24">
+      <textarea name="installGuide" rows="3" cols="50" placeholder="インストール手順(1行1手順)"></textarea>
       <button class="btn">保存</button></form>
-    <table><tr><th>名称</th><th>URL</th><th>カテゴリ</th><th>権限</th><th>状態</th><th></th></tr>
-    ${d.apps.map(a => `<tr><td>${esc(a.icon)} ${esc(a.name)}</td><td>${esc(a.url)}</td><td>${esc(a.category)}</td><td>${esc(a.minRole)}</td><td>${esc(a.status)}</td>
+    <table><tr><th>名称</th><th>種別</th><th>URL</th><th>カテゴリ</th><th>権限</th><th>状態</th><th></th></tr>
+    ${d.apps.map(a => `<tr><td>${esc(a.icon)} ${esc(a.name)}</td><td>${esc(a.type || 'web')}</td><td>${esc(a.url)}</td><td>${esc(a.category)}</td><td>${esc(a.minRole)}</td><td>${esc(a.status)}</td>
       <td><button class="btn sub" data-toggle="${esc(a.id)}">${a.status === 'active' ? '非表示' : '表示'}</button>
       <button class="btn sub" data-del="${esc(a.id)}">削除</button></td></tr>`).join('')}</table>
     <h2>ユーザー登録</h2>

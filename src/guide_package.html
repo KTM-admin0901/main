@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_blank">
+  <meta charset="utf-8">
+  <?!= include('style') ?>
+  <style>
+    .wrap{max-width:820px;margin:0 auto;padding:20px}
+    h1{font-size:22px} h2{font-size:17px;margin-top:26px;border-left:4px solid var(--accent);padding-left:8px}
+    pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto}
+    li{margin:4px 0;line-height:1.7} .meta{color:var(--muted);font-size:13px}
+    a.btn{display:inline-block;text-decoration:none}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="<?= portalUrl ?>" target="_top">← ポータルに戻る</a></p>
+  <h1><?= app.icon || '📦' ?> <?= app.name ?></h1>
+  <p><?= app.description ?></p>
+  <p class="meta">
+    パッケージ型(各PCにインストールして使うアプリ)
+    <? if (app.version) { ?> / バージョン: <?= app.version ?><? } ?>
+    <? if (app.owner) { ?> / 担当: <?= app.owner ?><? } ?>
+  </p>
+  <? if (app.downloadUrl) { ?><p><a class="btn" href="<?= app.downloadUrl ?>">ダウンロード / 配布フォルダを開く</a></p><? } ?>
+
+  <? if (app.requirements) { ?>
+    <h2>動作要件</h2><p><?= app.requirements ?></p>
+  <? } ?>
+  <? if (steps.length) { ?>
+    <h2>インストール・初回設定</h2>
+    <ol><? steps.forEach(function (s) { ?><li><?= s ?></li><? }); ?></ol>
+  <? } ?>
+  <? if (app.command) { ?>
+    <h2>起動・使い方</h2><pre><?= app.command ?></pre>
+  <? } ?>
+</div>
+</body>
+</html>

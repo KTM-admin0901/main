@@ -44,7 +44,8 @@ const INITIAL_APPS = [
   },
   {
     id: 'cad-guide', name: 'CADデータ取得・SP登録アシスタント', description: 'CAD取得の使い方と依頼の案内',
-    category: '設計', url: ScriptApp.getService().getUrl() + '?page=cad-guide', icon: '📐', sortOrder: 20
+    category: '設計', url: ScriptApp.getService().getUrl() + '?page=cad-guide', icon: '📐', sortOrder: 20,
+    type: 'package'
   }
 ];
 

@@ -18,7 +18,8 @@ const SHEETS = {
 };
 
 const SCHEMA = {
-  Apps: ['id', 'name', 'description', 'category', 'url', 'icon', 'minRole', 'status', 'sortOrder', 'owner', 'updatedAt'],
+  Apps: ['id', 'name', 'description', 'category', 'url', 'icon', 'minRole', 'status', 'sortOrder', 'owner', 'updatedAt',
+    'type', 'version', 'downloadUrl', 'requirements', 'installGuide', 'command'],
   Users: ['email', 'name', 'department', 'role', 'active'],
   Announcements: ['id', 'title', 'body', 'level', 'publishedAt', 'expiresAt', 'author'],
   Favorites: ['email', 'appId'],
@@ -27,6 +28,8 @@ const SCHEMA = {
 
 // ポータル内の案内ページ。?page=<キー> で開く。値は src/ 内のHTMLファイル名(拡張子なし)
 const PAGES = {
+  // 'app' は package型アプリの自動生成ページ(?page=app&id=...)。doGetで個別処理
+
   'cad-guide': 'guide_cad'
 };
 

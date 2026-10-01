@@ -13,10 +13,17 @@ function api_bootstrap() {
     title: CONFIG.PORTAL_TITLE,
     user: user,
     isAdmin: Auth.can(user, 'admin'),
-    apps: listApps_(user, false),
+    apps: listApps_(user, false).map(withLaunchUrl_),
     favorites: favs,
     announcements: announcements
   };
+}
+
+/** package型でurl未設定なら、ポータル内の自動生成ページへのURLを付ける */
+function withLaunchUrl_(a) {
+  const o = Object.assign({}, a);
+  if (o.type === 'package' && !o.url) o.url = ScriptApp.getService().getUrl() + '?page=app&id=' + encodeURIComponent(o.id);
+  return o;
 }
 
 function listApps_(user, includeHidden) {
@@ -50,7 +57,11 @@ function api_admin_load() {
 
 function api_admin_saveApp(app) {
   Auth.requireRole('admin');
-  if (!app || !app.name || !/^https:\/\//.test(app.url || '')) throw new Error('名前と https:// のURLは必須です');
+  if (!app || !app.name) throw new Error('名称は必須です');
+  app.type = app.type === 'package' ? 'package' : 'web';
+  if (app.type === 'web' && !/^https:\/\//.test(app.url || '')) throw new Error('Webアプリは https:// のURLが必須です');
+  if (app.url && !/^https:\/\//.test(app.url)) throw new Error('URLは https:// で始めてください');
+  if (app.downloadUrl && !/^https:\/\//.test(app.downloadUrl)) throw new Error('配布先URLは https:// で始めてください');
   app.id = app.id || Utilities.getUuid();
   app.status = app.status || 'active';
   app.minRole = CONFIG.ROLES.indexOf(app.minRole) >= 0 ? app.minRole : 'member';

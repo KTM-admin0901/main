@@ -9,7 +9,20 @@ const Db = {
   sheet(name) {
     const sh = this.ss().getSheetByName(name);
     if (!sh) throw new Error('シートが見つかりません: ' + name);
+    this._ensureHeader(sh, name);
     return sh;
+  },
+
+  /** スキーマに列が追加されていたら、ヘッダー行を自動で補完する(実行ごとに1回) */
+  _ensureHeader(sh, name) {
+    this._checked = this._checked || {};
+    if (this._checked[name]) return;
+    const header = SCHEMA[name];
+    const cur = sh.getRange(1, 1, 1, header.length).getValues()[0];
+    if (cur.join('|') !== header.join('|')) {
+      sh.getRange(1, 1, 1, header.length).setValues([header]).setFontWeight('bold').setBackground('#e8eef7');
+    }
+    this._checked[name] = true;
   },
 
   /** 全行をオブジェクト配列で返す */
