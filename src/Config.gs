@@ -24,7 +24,7 @@ const SCHEMA = {
     'type', 'version', 'downloadUrl', 'requirements', 'installGuide', 'command'],
   Users: ['email', 'name', 'department', 'role', 'active'],
   Announcements: ['id', 'title', 'body', 'level', 'publishedAt', 'expiresAt', 'author'],
-  Systems: ['id', 'name', 'phase', 'targetDate', 'summary', 'owner', 'minRole', 'sortOrder', 'updatedAt'],
+  Systems: ['id', 'name', 'phase', 'targetDate', 'summary', 'owner', 'minRole', 'sortOrder', 'updatedAt', 'showOnTop'],
   Documents: ['id', 'title', 'kind', 'systemId', 'url', 'version', 'summary', 'tags', 'owner', 'minRole', 'status', 'updatedAt'],
   Favorites: ['email', 'appId'],
   AuditLog: ['timestamp', 'email', 'action', 'target']

@@ -32,10 +32,11 @@ function renderAnnouncements() {
 
 function renderApps() {
   const q = $('#q').value.trim().toLowerCase();
-  const cats = ['全て', '★お気に入り', ...new Set(S.apps.map(a => a.category).filter(Boolean))];
+  const planned = S.systems.filter(s => s.phase !== '稼働' && s.showOnTop !== 'hidden');
+  const cats = ['全て', '★お気に入り', ...new Set(S.apps.map(a => a.category).filter(Boolean)), ...(planned.length ? ['🚧準備中'] : [])];
   $('#cats').innerHTML = cats.map(c => `<button class="chip ${c === cat ? 'on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join('');
   $('#cats').querySelectorAll('.chip').forEach(b => b.onclick = () => { cat = b.dataset.c; renderApps(); });
-  const list = S.apps.filter(a =>
+  const list = cat === '🚧準備中' ? [] : S.apps.filter(a =>
     (cat === '全て' || (cat === '★お気に入り' ? S.favorites.includes(String(a.id)) : a.category === cat)) &&
     (!q || (a.name + a.description + a.category).toLowerCase().includes(q)));
   $('#grid').innerHTML = list.map(a => {
@@ -43,8 +44,17 @@ function renderApps() {
     return `<a class="card" href="${esc(a.url)}" data-id="${esc(a.id)}" rel="noopener">
       <button class="star ${fav ? 'on' : ''}" data-id="${esc(a.id)}" title="お気に入り">${fav ? '★' : '☆'}</button>
       <div class="ic">${esc(a.icon || '📦')}</div><h3>${esc(a.name)}</h3><p>${esc(a.description)}</p>${a.type === 'package' ? '<p><span class="chip">PCインストール型</span></p>' : ''}</a>`;
-  }).join('') || '<p>該当するアプリがありません</p>';
-  $('#grid').querySelectorAll('.card').forEach(c => c.addEventListener('click', e => {
+  }).join('');
+  const plans = (cat === '全て' || cat === '🚧準備中') ? planned.filter(s =>
+    !q || (s.name + s.summary).toLowerCase().includes(q)) : [];
+  $('#grid').insertAdjacentHTML('beforeend', plans.map(s => `
+    <div class="card plan" data-plan="${esc(s.id)}" title="クリックで資料を見る">
+      <div class="ic">🚧</div><h3>${esc(s.name)}</h3><p>${esc(s.summary)}</p>
+      <span class="badge">準備中(${esc(s.phase)}${s.targetDate ? ' / ' + esc(String(s.targetDate).slice(0, 10)) : ''})</span></div>`).join(''));
+  if (!list.length && !plans.length) $('#grid').innerHTML = '<p>該当するアプリがありません</p>';
+  $('#grid').querySelectorAll('[data-plan]').forEach(c => c.onclick = () => {
+    dFilter = { system: c.dataset.plan, kind: '', q: '' }; showTab('docs'); });
+  $('#grid').querySelectorAll('a.card').forEach(c => c.addEventListener('click', e => {
     if (e.target.classList.contains('star')) return;
     run('api_logLaunch', c.dataset.id).catch(() => {});
   }));
@@ -88,7 +98,9 @@ function renderDocs() {
       <input name="targetDate" placeholder="予定時期 例 2026-12 / 2026年Q4" size="22">
       <input name="owner" placeholder="担当"><input name="summary" placeholder="概要・狙い" size="40">
       <select name="minRole"><option>member</option><option>manager</option><option>admin</option></select>
-      <input name="sortOrder" type="number" placeholder="順" style="width:70px"><button class="btn">保存</button></form></details>
+      <input name="sortOrder" type="number" placeholder="順" style="width:70px">
+      <select name="showOnTop"><option value="show">トップに準備中として表示</option><option value="hidden">トップに表示しない</option></select>
+      <button class="btn">保存</button></form></details>
     <details><summary>資料を登録</summary>
     <form class="row" id="fDoc"><input type="hidden" name="id">
       <input name="title" placeholder="タイトル" required>

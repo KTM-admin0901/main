@@ -120,6 +120,7 @@ function api_saveSystem(s) {
   s.id = s.id || Utilities.getUuid();
   s.phase = DOC_PHASES.indexOf(s.phase) >= 0 ? s.phase : '構想';
   s.minRole = CONFIG.ROLES.indexOf(s.minRole) >= 0 ? s.minRole : 'member';
+  s.showOnTop = s.showOnTop === 'hidden' ? 'hidden' : 'show';
   s.owner = s.owner || user.name;
   s.updatedAt = new Date();
   Db.upsert(SHEETS.SYSTEMS, 'id', s);
